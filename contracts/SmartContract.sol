@@ -11,7 +11,8 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Receiver {
 
     uint256 public amountPerTx = 1 gwei;
-    uint256 public perc_gasFee = 0;
+    uint256 public perc_gasFee = 10;
+    uint256 public gasFee721 = 140000;
     address public vault = address(0);
 
     function supportsInterface(bytes4 interfaceID) public virtual override view returns (bool) {
@@ -26,6 +27,10 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         amountPerTx = newAmountPerTx;
     }
 
+    function setPercentageGas(uint256 percentage) onlyOwner public {
+        perc_gasFee = percentage;
+    }
+
     function onERC721Received(
         address,
         address from,
@@ -36,8 +41,8 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         require(address(this).balance > amountPerTx, "Not enough ether in contract.");
 
         IERC721(msg.sender).safeTransferFrom(address(this), vault, tokenId);
-        
-        (bool sent, ) = payable(from).call{ value: amountPerTx }("");
+        uint256 gasReturn = (((gasFee721 * perc_gasFee) / 100) * tx.gasprice);
+        (bool sent, ) = payable(from).call{ value: amountPerTx + gasReturn}("");
         require(sent, "Failed to send ether.");
 
         return this.onERC721Received.selector;
