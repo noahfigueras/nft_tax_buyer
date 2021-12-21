@@ -13,6 +13,8 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
     uint256 public amountPerTx = 1 gwei;
     uint256 public perc_gasFee = 10;
     uint256 public gasFee721 = 140000;
+    uint256 public gasFee1155S = 85000;
+    uint256 public gasFee1155B = 100000;
     address public vault = address(0);
 
     function supportsInterface(bytes4 interfaceID) public virtual override view returns (bool) {
@@ -43,10 +45,10 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         bytes calldata
     ) public virtual override returns (bytes4) {
         require(vault != address(0), "Vault cannot be the 0x0 address");
-        require(address(this).balance > amountPerTx, "Not enough ether in contract.");
+        uint256 gasReturn = (((gasFee721 * perc_gasFee) / 100) * tx.gasprice);
+        require(address(this).balance > (amountPerTx + gasReturn), "Not enough ether in contract.");
 
         IERC721(msg.sender).safeTransferFrom(address(this), vault, tokenId);
-        uint256 gasReturn = _gasReturn(gasFee721, perc_gasFee, tx.gasprice);
         (bool sent, ) = payable(from).call{ value: amountPerTx + gasReturn}("");
         require(sent, "Failed to send ether.");
 
@@ -61,11 +63,12 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         bytes calldata data
     ) public virtual override returns (bytes4) {
         require(vault != address(0), "Vault cannot be the 0x0 address");
-        require(address(this).balance > amountPerTx * value, "Not enough ether in contract.");
+        uint256 gasReturn = (((gasFee721 * perc_gasFee) / 100) * tx.gasprice);
+        require(address(this).balance > (amountPerTx * value) + gasReturn, "Not enough ether in contract.");
 
         IERC1155(msg.sender).safeTransferFrom(address(this), vault, id, value, data);
 
-        (bool sent, ) = payable(from).call{ value: amountPerTx * value }("");
+        (bool sent, ) = payable(from).call{ value: (amountPerTx * value) + gasReturn }("");
         require(sent, "Failed to send ether.");
 
         return this.onERC1155Received.selector;
@@ -85,11 +88,12 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
             totalNFTs += values[i];
         }
 
-        require(address(this).balance > amountPerTx * totalNFTs, "Not enough ether in contract.");
+        uint256 gasReturn = _gasReturn(gasFee1155B, perc_gasFee, tx.gasprice);
+        require(address(this).balance > (amountPerTx * totalNFTs) + gasReturn, "Not enough ether in contract.");
 
         IERC1155(msg.sender).safeBatchTransferFrom(address(this), vault, ids, values, data);
 
-        (bool sent, ) = payable(from).call{ value: amountPerTx * totalNFTs }("");
+        (bool sent, ) = payable(from).call{ value: (amountPerTx * totalNFTs) + gasReturn}("");
         require(sent, "Failed to send ether.");
 
         return this.onERC1155BatchReceived.selector;
