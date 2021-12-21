@@ -19,7 +19,7 @@ async function main() {
   await contract.setVault(vault.address);
 
   // GENERAL SETUP
-  const collection721 = "0xd0a07a76746707f6d6d36d9d5897b14a8e9ed493";
+  const collection721 = "0x60e4d786628fea6478f785a6d7e704777c86a7c6";
   const collection1155 = "0x28472a58a490c5e09a238847f66a68a47cc76f0f";
   const Abi721 = [
     'function safeTransferFrom(address from, address to, uint256 tokenId) external'
@@ -37,7 +37,7 @@ async function main() {
 
   // ERC721
   const contract721 = new ethers.Contract(collection721, Abi721, signer);
-  const transfer1 = await contract721.safeTransferFrom(signer.address, contract.address, 5863); 
+  const transfer1 = await contract721.safeTransferFrom(signer.address, contract.address, 779); 
   const tx1 = await transfer1.wait();
   console.log('ERC721 safeTransfer gas used:', Number(tx1.gasUsed));
 
