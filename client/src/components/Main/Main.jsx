@@ -3,22 +3,52 @@ import React, { useState } from 'react';
 import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
+import Alert from 'react-bootstrap/Alert';
 
 const Main = () => {
 	// Hooks 
-  const [input, setInput] = useState("");
-	const [batch, setBatch] = useState([]);
   const inputPlaceHolder = "https://opensea.io/assets/0x...";
+  const [input, setInput] = useState("");
+	const [alerts, setAlerts] = useState([]);
+	const [batch, setBatch] = useState([]);
 	
 	// Functions
 	const addToBatch = () => {
+		// Reset Alerts
+		setAlerts([]);
+		// Validate URL
 		if(!input.includes("https://opensea.io/assets/")){
-			return alert("Url not valid, please copy the url from opensea");	
+			return setAlerts(oldA => [...oldA, "Url not valid, please copy the url from opensea"]);	
+		} 
+		if(input.includes("matic")) {
+			return setAlerts(oldA => [...oldA, "We don't buy matic tokens at the moment"]);	
 		}
+		if(input.includes("klaytn")) {
+			return setAlerts(oldA => [...oldA, "We don't buy klatyn tokens at the moment"]);	
+		}
+		
+		// Get Info
+		const contractAddr = input.slice(26,68);
+		const id = input.slice(69);
+
+		// Check if already exists
+		for(let b of batch){
+			if((b.contract === contractAddr) && (b.id === id)){
+				return setAlerts(oldA => [...oldA, "Token alredy added to the batch"]); 
+			}
+		};
+
+		// Add to batch
+		return setBatch(oldB => [...oldB,
+		{
+			standard: "ERC721",
+			contract: contractAddr,
+			id: id
+		}]);
 	}
 
   return(
-		 <header className="App-header">
+		 <div className="App-header">
 			<img src={logo} className="App-logo" alt="alien" />
 			<p>Paste OpenSea url of an NFT you want to sell &#11015;&#65039;</p>
 			<InputGroup style={{padding: "20px", maxWidth: "1000px"}} className="mb-3">
@@ -33,7 +63,22 @@ const Main = () => {
 						Add to sell
 					</Button>
 			</InputGroup>
-		</header> 
+			<div id="alertBox">
+				{alerts.map((a,id) => (
+ 					<Alert key={id} variant="primary">
+     				{a}
+		   		</Alert>
+				))}
+			</div>
+			<div id="nft-batch">
+				{batch.map((b,id) => (
+ 					<div key={id}>
+     				<p>Contract: {b.contract}</p>
+     				<p>TokenID: {b.id}</p>
+		   		</div>
+				))}
+			</div>
+		</div> 
   );
 };
 
