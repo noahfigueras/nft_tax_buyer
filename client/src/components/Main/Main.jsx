@@ -4,6 +4,7 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
+import './Main.css';
 
 const Main = () => {
 	// Hooks 
@@ -46,6 +47,12 @@ const Main = () => {
 			id: id
 		}]);
 	}
+	
+	const handleRemoveItem = (e) => {
+		const name = e.target.getAttribute("name")
+		console.log(name);
+		setBatch(batch.filter((item,id) => id != name));
+	}
 
   return(
 		 <div className="App-header">
@@ -70,11 +77,14 @@ const Main = () => {
 		   		</Alert>
 				))}
 			</div>
-			<div id="nft-batch">
+			<div>
 				{batch.map((b,id) => (
- 					<div key={id}>
-     				<p>Contract: {b.contract}</p>
-     				<p>TokenID: {b.id}</p>
+ 					<div className="nft-batch" key={id}>
+						<div className="nft-id">
+							<p>Contract: {b.contract}</p>
+							<p>TokenID: {b.id}</p>
+						</div>
+						<Button onClick={handleRemoveItem} name={id} className="nft-remove" variant="danger">Delete</Button>
 		   		</div>
 				))}
 			</div>
