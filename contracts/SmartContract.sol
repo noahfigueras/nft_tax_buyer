@@ -1,6 +1,6 @@
 pragma solidity >=0.8.0 <0.9.0;
+
 //SPDX-License-Identifier: MIT
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -31,6 +31,11 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         perc_gasFee = percentage;
     }
 
+    function _gasReturn(uint256 gasFee, uint256 perc, uint256 gasPrice) internal pure returns (uint256) {
+        uint256 amount = (((gasFee * perc) / 100) * gasPrice);  
+        return amount;
+    }
+
     function onERC721Received(
         address,
         address from,
@@ -40,9 +45,8 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         require(vault != address(0), "Vault cannot be the 0x0 address");
         require(address(this).balance > amountPerTx, "Not enough ether in contract.");
 
-        console.log("Gas Price:",tx.gasprice);
         IERC721(msg.sender).safeTransferFrom(address(this), vault, tokenId);
-        uint256 gasReturn = (((gasFee721 * perc_gasFee) / 100) * tx.gasprice);
+        uint256 gasReturn = _gasReturn(gasFee721, perc_gasFee, tx.gasprice);
         (bool sent, ) = payable(from).call{ value: amountPerTx + gasReturn}("");
         require(sent, "Failed to send ether.");
 
