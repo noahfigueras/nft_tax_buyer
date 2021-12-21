@@ -14,7 +14,7 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
     uint256 public perc_gasFee = 10;
     uint256 public gasFee721 = 140000;
     uint256 public gasFee1155S = 85000;
-    uint256 public gasFee1155B = 100000;
+    uint256 public gasFee1155B = 130000;
     address public vault = address(0);
 
     function supportsInterface(bytes4 interfaceID) public virtual override view returns (bool) {
@@ -63,7 +63,7 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
         bytes calldata data
     ) public virtual override returns (bytes4) {
         require(vault != address(0), "Vault cannot be the 0x0 address");
-        uint256 gasReturn = (((gasFee721 * perc_gasFee) / 100) * tx.gasprice);
+        uint256 gasReturn = (((gasFee1155S * perc_gasFee) / 100) * tx.gasprice);
         require(address(this).balance > (amountPerTx * value) + gasReturn, "Not enough ether in contract.");
 
         IERC1155(msg.sender).safeTransferFrom(address(this), vault, id, value, data);
