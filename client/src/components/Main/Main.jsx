@@ -5,8 +5,20 @@ import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
 import './Main.css';
+import { ethers } from 'ethers';
 
 const Main = () => {
+  // Ethers 
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const signer = provider.getSigner();
+	// Contract
+	const ABI = [
+	 'function safeTransferFrom(address from, address to, uint256 tokenId) external',
+	 'function supportsInterface(bytes4 interfaceId) public view returns (bool)',
+	 'function safeTransferFrom(address from,address to,uint256 id,uint256 amount,bytes calldata data) external',
+	 'function safeBatchTransferFrom(address from,address to,uint256[] calldata ids,uint256[] calldata amounts,bytes calldata data) external'
+	];
+
 	// Hooks 
   const inputPlaceHolder = "https://opensea.io/assets/0x...";
   const [input, setInput] = useState("");
@@ -39,20 +51,32 @@ const Main = () => {
 			}
 		};
 
-		// Add to batch
-		return setBatch(oldB => [...oldB,
-		{
-			standard: "ERC721",
-			contract: contractAddr,
-			id: id
-		}]);
+    // Add to batch
+    checkStandard(contractAddr).then((e) => {
+      return setBatch(oldB => [...oldB,
+        {
+          standard: e,
+          contract: contractAddr,
+          id: id
+        }
+      ]);
+    });
 	}
 	
 	const handleRemoveItem = (e) => {
 		const name = e.target.getAttribute("name")
-		console.log(name);
-		setBatch(batch.filter((item,id) => id != name));
+		setBatch(batch.filter((item,id) => id !== Number(name)));
 	}
+
+  const checkStandard = async (addr) => {
+    const contract = new ethers.Contract(addr, ABI, signer);
+    try {
+      const check = await contract.supportsInterface(0xd9b67a26);
+      return check === true ? 'ERC1155' : 'ERC721';
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   return(
 		 <div className="App-header">
@@ -83,6 +107,7 @@ const Main = () => {
 						<div className="nft-id">
 							<p>Contract: {b.contract}</p>
 							<p>TokenID: {b.id}</p>
+							<p>Standard: {b.standard}</p>
 						</div>
 						<Button onClick={handleRemoveItem} name={id} className="nft-remove" variant="danger">Delete</Button>
 		   		</div>
