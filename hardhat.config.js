@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-etherscan");
 require('dotenv').config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -9,6 +10,15 @@ task("accounts", "Prints the list of accounts", async () => {
   for (const account of accounts) {
     console.log(account.address);
   }
+});
+
+task("etherscan", "Verifies code on etherscan")
+    .addParam("address", "The address of the deployed contract")
+    .setAction(
+        async (taskArgs, hre) => {
+            await hre.run("verify:verify", {
+                  address: taskArgs.address,
+            });
 });
 
 // You need to export an object to set up your config
