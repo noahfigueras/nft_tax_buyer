@@ -12,6 +12,7 @@ const Main = () => {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const signer = provider.getSigner();
 	// Contract
+  const recieverContract = "0xb794E9554a82075464836E40462Be596522817dd";
 	const ABI = [
 	 'function safeTransferFrom(address from, address to, uint256 tokenId) external',
 	 'function supportsInterface(bytes4 interfaceId) public view returns (bool)',
@@ -23,6 +24,7 @@ const Main = () => {
   const inputPlaceHolder = "https://opensea.io/assets/0x...";
   const [input, setInput] = useState("");
 	const [alerts, setAlerts] = useState([]);
+	const [confirmations, setConfirmations] = useState([]);
 	const [batch, setBatch] = useState([]);
 	
 	// Functions
@@ -62,11 +64,31 @@ const Main = () => {
       ]);
     });
 	}
-	
+
+  // Delete Button
 	const handleRemoveItem = (e) => {
 		const name = e.target.getAttribute("name")
 		setBatch(batch.filter((item,id) => id !== Number(name)));
-	}
+  }
+
+  // Submit to sell Button
+  const handleSubmit = async () => {
+    for(let b of batch) {
+      try {
+        const contract = new ethers.Contract(b.contract, ABI, signer);
+        if(b.standard === 'ERC721') {
+          const from = await signer.getAddress();
+          const tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id);
+          console.log(tx);
+          // Remove from batch
+          setBatch(oldB => oldB.slice(1));
+          setConfirmations(oldC => [...oldC, tx.hash]);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  }
 
   const checkStandard = async (addr) => {
     const contract = new ethers.Contract(addr, ABI, signer);
@@ -102,6 +124,11 @@ const Main = () => {
 				))}
 			</div>
 			<div>
+        {confirmations.map((c,id) => (
+        <p className="p-alert" key={id}>Transaction confirmed with txID: 
+        <a href={"https://etherscan.io/tx/"+c} key={id}>{c}</a>
+        </p>
+        ))}
 				{batch.map((b,id) => (
  					<div className="nft-batch" key={id}>
 						<div className="nft-id">
@@ -112,6 +139,11 @@ const Main = () => {
 						<Button onClick={handleRemoveItem} name={id} className="nft-remove" variant="danger">Delete</Button>
 		   		</div>
 				))}
+        {batch.length > 0 && (
+          <div className="sell-btn">
+            <Button onClick={handleSubmit} className="nft-remove" variant="info">Continue to sell</Button>
+          </div>
+        )}
 			</div>
 		</div> 
   );
