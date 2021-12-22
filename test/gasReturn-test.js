@@ -34,7 +34,7 @@ describe("Gas % returns correctly to caller", function() {
   it("ERC721 returns 10% of gas to caller", async function() {
     const initBalance = await owner.getBalance();
     const txArgs = {
-          gasLimit: 165000,
+          gasLimit: 130000,
           gasPrice: ethers.utils.parseUnits('110.0', 'gwei')
     };
     const transfer = await nft_mock['safeTransferFrom(address,address,uint256)']
