@@ -2,21 +2,18 @@ import './App.css';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
 import Main from './components/Main/Main';
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 
 function App() {
-	// Ethers Setup
-	//const ethereum = window.ethereum;
-
 	// Hooks
   const [user, setUser] = useState([false, null]);
 
-	/*useEffect(() => {
+	useEffect(() => {
 		// Connect to Metamask
-		if(ethereum.selectedAddress !== null) {
-			setUser([true, ethereum.selectedAddress]);
+		if(window.ethereum.selectedAddress !== null) {
+			setUser([true, window.ethereum.selectedAddress]);
 		}
-	}, []);*/
+	}, [user]);
 
   return (
     <div className="App">
