@@ -20,6 +20,9 @@ const Navbar = (props) => {
 			try{
 					const tx = await ethereum.request({ method: 'eth_requestAccounts' })
 			 		props.setUser([true, tx[0]]);
+          ethereum.on('accountsChanged', function (accounts) {
+             props.setUser([true,accounts[0]]);
+          });
 			} catch (e) {
 					console.log("Error: conection to metamask failed");
 			} 
@@ -29,7 +32,7 @@ const Navbar = (props) => {
 			try{
 			 		props.setUser([false, null]);
 			} catch (e) {
-					console.log("Error: conection to metamask failed");
+					console.log("Error: Desconection to metamask failed");
 			} 
 	}
 
@@ -48,11 +51,11 @@ const Navbar = (props) => {
         </Nav.Brand>
       </Container>
 			{ !props.user[0] ? (
-			<Button onClick={connect} style={onStyle} variant="primary">Connect</Button>
+      <Button onClick={connect} style={onStyle} variant="primary">Connect</Button>
 			)	: (
 			<div>
 				<span style={addrStyle}>{props.user[1].slice(0,4)}...{props.user[1].slice(38,42)}</span>
-		  	<Button onClick={disconnect} style={onStyle} variant="secondary">Disconnect</Button>
+        <Button onClick={disconnect} style={onStyle} variant="secondary">Disconnect</Button>
 			</div>
 			)}
     </Nav>

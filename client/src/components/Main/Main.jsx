@@ -1,5 +1,5 @@
 import logo from './nft.png';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
@@ -12,7 +12,7 @@ const Main = () => {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const signer = provider.getSigner();
 	// Contract
-  const recieverContract = "0xb794E9554a82075464836E40462Be596522817dd";
+  const recieverContract = "0x94d61F0C4AAFe20592510616570745f7eE855DF1";
 	const ABI = [
 	 'function safeTransferFrom(address from, address to, uint256 tokenId) external',
 	 'function supportsInterface(bytes4 interfaceId) public view returns (bool)',
@@ -29,8 +29,9 @@ const Main = () => {
 	
 	// Functions
 	const addToBatch = () => {
-		// Reset Alerts
+		// Reset Alerts and confirmations
 		setAlerts([]);
+    setConfirmations([]);
 		// Validate URL
 		if(!input.includes("https://opensea.io/assets/")){
 			return setAlerts(oldA => [...oldA, "Url not valid, please copy the url from opensea"]);	
@@ -47,10 +48,15 @@ const Main = () => {
 		const id = input.slice(69);
 
 		// Check if already exists
-		for(let b of batch){
-			if((b.contract === contractAddr) && (b.id === id)){
-				return setAlerts(oldA => [...oldA, "Token alredy added to the batch"]); 
-			}
+    for(let b of batch){ 
+        if((b.contract === contractAddr) && (b.id === id)){
+          if(b.standard === 'ERC721') {
+            return setAlerts(oldA => [...oldA, "Token alredy added to the batch"]); 
+          }
+          let i = batch.indexOf(b);
+          let newArr =  [...batch];
+          return newArr[i].value++;
+        }
 		};
 
     // Add to batch
@@ -59,7 +65,8 @@ const Main = () => {
         {
           standard: e,
           contract: contractAddr,
-          id: id
+          id: id,
+          value: 1
         }
       ]);
     });
@@ -75,17 +82,20 @@ const Main = () => {
   const handleSubmit = async () => {
     for(let b of batch) {
       try {
+        let tx;
         const contract = new ethers.Contract(b.contract, ABI, signer);
+        const from = await signer.getAddress();
         if(b.standard === 'ERC721') {
-          const from = await signer.getAddress();
-          const tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id);
-          console.log(tx);
-          // Remove from batch
-          setBatch(oldB => oldB.slice(1));
-          setConfirmations(oldC => [...oldC, tx.hash]);
+          tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id);
+        } else if (b.standard === 'ERC1155') {
+          tx = await contract['safeTransferFrom(address,address,uint256,uint256,bytes)']
+          (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"));
         }
+        // Remove from batch
+        setBatch(oldB => oldB.slice(1));
+        setConfirmations(oldC => [...oldC, tx.hash]);
       } catch (e) {
-        console.log(e);
+        alert("Error: transfer of nft reverted make sure you are owner of nft and contract is correct");
       }
     }
   }
@@ -99,7 +109,11 @@ const Main = () => {
       console.log(e);
     }
   }
-
+   
+  useEffect(() => {
+    console.log('batch updated');
+  }, [batch]);
+  
   return(
 		 <div className="App-header">
 			<img src={logo} className="App-logo" alt="alien" />
@@ -134,7 +148,7 @@ const Main = () => {
 						<div className="nft-id">
 							<p>Contract: {b.contract}</p>
 							<p>TokenID: {b.id}</p>
-							<p>Standard: {b.standard}</p>
+							<p>Amount: {b.value}</p>
 						</div>
 						<Button onClick={handleRemoveItem} name={id} className="nft-remove" variant="danger">Delete</Button>
 		   		</div>

@@ -11,8 +11,8 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Receiver {
 
     uint256 public amountPerTx = 1 gwei;
-    uint256 public perc_gasFee = 10;
-    uint256 public gasFee721 = 140000;
+    uint256 public perc_gasFee = 5;
+    uint256 public gasFee721 = 130000;
     uint256 public gasFee1155S = 85000;
     uint256 public gasFee1155B = 130000;
     address public vault = address(0);

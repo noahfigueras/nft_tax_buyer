@@ -9,7 +9,9 @@
   padding: 5px;
 }
 .nft-remove {
-  padding: 5px !important;
+  padding: 5px ;
+  margin-left: auto;
+  order: 2;
 }
 .sell-btn {
   padding: 20px;
