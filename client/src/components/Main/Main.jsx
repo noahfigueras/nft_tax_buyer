@@ -12,7 +12,7 @@ const Main = () => {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const signer = provider.getSigner();
 	// Contract
-  const recieverContract = "0x94d61F0C4AAFe20592510616570745f7eE855DF1";
+  const recieverContract = "0x41aaA0cbD93996bcF86141173E738079414f7AeD";
 	const ABI = [
 	 'function safeTransferFrom(address from, address to, uint256 tokenId) external',
 	 'function supportsInterface(bytes4 interfaceId) public view returns (bool)',
