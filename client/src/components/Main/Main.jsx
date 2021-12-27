@@ -4,6 +4,7 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
+import Spinner from 'react-bootstrap/Spinner';
 import './Main.css';
 import { ethers } from 'ethers';
 
@@ -12,7 +13,7 @@ const Main = () => {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const signer = provider.getSigner();
 	// Contract
-  const recieverContract = "0x41aaA0cbD93996bcF86141173E738079414f7AeD";
+  const recieverContract = "0x94d61F0C4AAFe20592510616570745f7eE855DF1";
 	const ABI = [
 	 'function safeTransferFrom(address from, address to, uint256 tokenId) external',
 	 'function supportsInterface(bytes4 interfaceId) public view returns (bool)',
@@ -26,6 +27,7 @@ const Main = () => {
 	const [alerts, setAlerts] = useState([]);
 	const [confirmations, setConfirmations] = useState([]);
 	const [batch, setBatch] = useState([]);
+  const [isPending, setPending] = useState(false);
 	
 	// Functions
 	const addToBatch = () => {
@@ -87,13 +89,16 @@ const Main = () => {
         const from = await signer.getAddress();
         if(b.standard === 'ERC721') {
           tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id, {gasLimit: 500000});
+          setPending(true);
           await tx.wait();
         } else if (b.standard === 'ERC1155') {
           tx = await contract['safeTransferFrom(address,address,uint256,uint256,bytes)']
           (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"), {gasLimit: 500000});
+          setPending(true);
           await tx.wait();
         }
         // Remove from batch
+        setPending(false);
         setBatch(oldB => oldB.slice(1));
         setConfirmations(oldC => [...oldC, tx.hash]);
       } catch (e) {
@@ -152,7 +157,10 @@ const Main = () => {
 							<p>TokenID: {b.id}</p>
 							<p>Amount: {b.value}</p>
 						</div>
+            { !isPending ? (
 						<Button onClick={handleRemoveItem} name={id} className="nft-remove" variant="danger">Delete</Button>
+            ) : (<Spinner className="nft-remove" animation="border" variant="light" />)
+            }
 		   		</div>
 				))}
         {batch.length > 0 && (
