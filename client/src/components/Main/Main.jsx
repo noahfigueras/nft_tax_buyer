@@ -95,12 +95,17 @@ const Main = () => {
         const contract = new ethers.Contract(b.contract, ABI, signer);
         const from = await signer.getAddress();
         if(b.standard === 'ERC721') {
-          tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id, {gasLimit: 500000});
+          const estimate = await contract.estimateGas['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id);
+          const estimateGas = estimate.add(ethers.BigNumber.from("10000"));
+          tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id, {gasLimit: estimateGas});
           setPending(true);
           await tx.wait();
         } else if (b.standard === 'ERC1155') {
+          const estimate = await contract.estimateGas['safeTransferFrom(address,address,uint256,uint256,bytes)']
+          (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"));
+          const estimateGas = estimate.add(ethers.BigNumber.from("10000"));
           tx = await contract['safeTransferFrom(address,address,uint256,uint256,bytes)']
-          (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"), {gasLimit: 500000});
+          (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"), {gasLimit: estimateGas});
           setPending(true);
           await tx.wait();
         }
