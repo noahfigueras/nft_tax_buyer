@@ -86,10 +86,12 @@ const Main = () => {
         const contract = new ethers.Contract(b.contract, ABI, signer);
         const from = await signer.getAddress();
         if(b.standard === 'ERC721') {
-          tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id);
+          tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id, {gasLimit: 500000});
+          await tx.wait();
         } else if (b.standard === 'ERC1155') {
           tx = await contract['safeTransferFrom(address,address,uint256,uint256,bytes)']
-          (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"));
+          (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"), {gasLimit: 500000});
+          await tx.wait();
         }
         // Remove from batch
         setBatch(oldB => oldB.slice(1));
