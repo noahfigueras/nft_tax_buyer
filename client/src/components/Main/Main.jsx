@@ -10,8 +10,12 @@ import { ethers } from 'ethers';
 
 const Main = () => {
   // Ethers 
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
-  const signer = provider.getSigner();
+  let provider;
+  let signer;
+  if(window.ethereum) {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
+  }
 	// Contract
   const recieverContract = "0x41aaA0cbD93996bcF86141173E738079414f7AeD";
 	const ABI = [
@@ -63,6 +67,9 @@ const Main = () => {
 
     // Add to batch
     checkStandard(contractAddr).then((e) => {
+      if(e === false) {
+			  return setAlerts(oldA => [...oldA, "Incorrect contract, not supported or Please Connect to Metamask!"]);
+      } 
       return setBatch(oldB => [...oldB,
         {
           standard: e,
@@ -102,7 +109,8 @@ const Main = () => {
         setBatch(oldB => oldB.slice(1));
         setConfirmations(oldC => [...oldC, tx.hash]);
       } catch (e) {
-        alert("Error: transfer of nft reverted make sure you are owner of nft and contract is correct");
+        setPending(false);
+			  return setAlerts(oldA => [...oldA, "Transfer of nft reverted make sure you are owner of nft and contract is correct"]);
       }
     }
   }
@@ -113,7 +121,7 @@ const Main = () => {
       const check = await contract.supportsInterface(0xd9b67a26);
       return check === true ? 'ERC1155' : 'ERC721';
     } catch (e) {
-      console.log(e);
+      return false;
     }
   }
    
@@ -125,6 +133,7 @@ const Main = () => {
 		 <div className="App-header">
 			<img src={logo} className="App-logo" alt="alien" />
 			<p>Paste OpenSea url of an NFT you want to sell &#11015;&#65039;</p>
+      { window.ethereum ? (
 			<InputGroup style={{padding: "20px", maxWidth: "1000px"}} className="mb-3">
 					<FormControl
 						placeholder={inputPlaceHolder}
@@ -136,7 +145,9 @@ const Main = () => {
 					<Button onClick={addToBatch} variant="outline-secondary" id="button-addon2">
 						Add to sell
 					</Button>
-			</InputGroup>
+      </InputGroup> ) : (
+      <Button variant="warning" href="https://metamask.io/download.html" target="_blank">Download Metamask</Button>
+      )}
 			<div id="alertBox">
 				{alerts.map((a,id) => (
  					<Alert key={id} variant="primary">
