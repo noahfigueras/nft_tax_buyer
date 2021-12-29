@@ -5,6 +5,7 @@ import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
 import Spinner from 'react-bootstrap/Spinner';
+import Modal from 'react-bootstrap/Modal';
 import './Main.css';
 import { ethers } from 'ethers';
 
@@ -17,12 +18,13 @@ const Main = () => {
     signer = provider.getSigner();
   }
 	// Contract
-  const recieverContract = "0x41aaA0cbD93996bcF86141173E738079414f7AeD";
+  const recieverContract = "0x94d61F0C4AAFe20592510616570745f7eE855DF1";
 	const ABI = [
 	 'function safeTransferFrom(address from, address to, uint256 tokenId) external',
 	 'function supportsInterface(bytes4 interfaceId) public view returns (bool)',
 	 'function safeTransferFrom(address from,address to,uint256 id,uint256 amount,bytes calldata data) external',
-	 'function safeBatchTransferFrom(address from,address to,uint256[] calldata ids,uint256[] calldata amounts,bytes calldata data) external'
+	 'function safeBatchTransferFrom(address from,address to,uint256[] calldata ids,uint256[] calldata amounts,bytes calldata data) external',
+   'function perc_gasFee() public view returns(uint256)'
 	];
 
 	// Hooks 
@@ -32,6 +34,7 @@ const Main = () => {
 	const [confirmations, setConfirmations] = useState([]);
 	const [batch, setBatch] = useState([]);
   const [isPending, setPending] = useState(false);
+	const [smShow, setSmShow] = useState([false, "0"]);
 	
 	// Functions
 	const addToBatch = () => {
@@ -93,13 +96,17 @@ const Main = () => {
       try {
         let tx;
         const contract = new ethers.Contract(b.contract, ABI, signer);
+        const reciever = new ethers.Contract(recieverContract, ABI, signer);
+        let gasFee = await reciever.perc_gasFee();
         const from = await signer.getAddress();
         if(b.standard === 'ERC721') {
           const estimate = await contract.estimateGas['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id);
           const estimateGas = estimate.add(ethers.BigNumber.from("10000"));
           tx = await contract['safeTransferFrom(address,address,uint256)'](from, recieverContract, b.id, {gasLimit: estimateGas});
           setPending(true);
+          setConfirmations(oldC => [...oldC, tx.hash]);
           await tx.wait();
+					setSmShow([true, ethers.utils.formatUnits(String(tx.gasPrice.mul((130000 * gasFee)/100)), "ether")])
         } else if (b.standard === 'ERC1155') {
           const estimate = await contract.estimateGas['safeTransferFrom(address,address,uint256,uint256,bytes)']
           (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"));
@@ -107,12 +114,13 @@ const Main = () => {
           tx = await contract['safeTransferFrom(address,address,uint256,uint256,bytes)']
           (from, recieverContract, b.id, b.value, ethers.utils.arrayify("0x"), {gasLimit: estimateGas});
           setPending(true);
+          setConfirmations(oldC => [...oldC, tx.hash]);
           await tx.wait();
+					setSmShow([true, ethers.utils.formatUnits(String(tx.gasPrice.mul((85000 * gasFee)/100)), "ether")])
         }
         // Remove from batch
         setPending(false);
         setBatch(oldB => oldB.slice(1));
-        setConfirmations(oldC => [...oldC, tx.hash]);
       } catch (e) {
         setPending(false);
 			  return setAlerts(oldA => [...oldA, "Transfer of nft reverted make sure you are owner of nft and contract is correct"]);
@@ -138,6 +146,19 @@ const Main = () => {
 		 <div className="App-header">
 			<img src={logo} className="App-logo" alt="alien" />
 			<p>Paste OpenSea url of an NFT you want to sell &#11015;&#65039;</p>
+      <Modal
+        size="sm"
+        show={smShow[0]}
+        onHide={() => setSmShow([false, "0"])}
+        aria-labelledby="example-modal-sizes-title-sm"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title id="example-modal-sizes-title-sm">
+            Congratulations!
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>You got {smShow[1]} eth back.</Modal.Body>
+      </Modal>
       { window.ethereum ? (
 			<InputGroup style={{padding: "20px", maxWidth: "1000px"}} className="mb-3">
 					<FormControl
@@ -162,14 +183,14 @@ const Main = () => {
 			</div>
 			<div>
         {confirmations.map((c,id) => (
-        <p className="p-alert" key={id}>Transaction confirmed with txID: 
+        <p className="p-alert" key={id}>Check your tx status: 
         <a href={"https://etherscan.io/tx/"+c} key={id}>{c}</a>
         </p>
         ))}
 				{batch.map((b,id) => (
  					<div className="nft-batch" key={id}>
 						<div className="nft-id">
-							<p>Contract: {b.contract}</p>
+              <p><a href={"https://etherscan.io/address/"+b.contract}>Contract: </a> {b.contract}</p>
 							<p>TokenID: {b.id}</p>
 							<p>Amount: {b.value}</p>
 						</div>
