@@ -6,11 +6,12 @@ import React, { useState } from 'react';
 
 function App() {
   const [user, setUser] = useState([]);
+	const [provider, setProvider] = useState(null);
 
   return (
     <div className="App">
-      <Navbar user={user} setUser={setUser}/>
-      <Main/>
+      <Navbar user={user} setUser={setUser} setProvider={setProvider}/>
+      <Main Provider={provider}/>
       <Footer/>
     </div>
   );

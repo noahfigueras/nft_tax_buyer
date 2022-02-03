@@ -2,6 +2,9 @@ import logo from '../../logo.svg';
 import { Navbar as Nav } from 'react-bootstrap';
 import Container from 'react-bootstrap/Container';
 import Button from 'react-bootstrap/Button';
+import { ethers } from "ethers";
+import Web3Modal from "web3modal";
+import WalletConnectProvider from "@walletconnect/web3-provider";
 
 // CSS Styles
 const onStyle = {
@@ -13,14 +16,32 @@ const addrStyle = {
 }
 
 const Navbar = (props) => {
-	const ethereum = window.ethereum;
+  const providerOptions = {
+    walletconnect: {
+      package: WalletConnectProvider,
+      options: {
+        infuraId: "27e484dcd9e3efcfd25a83a78777cdf1", 
+      }
+    }
+  };
+
+  const web3Modal = new Web3Modal({
+    network: "mainnet", // optional
+    cacheProvider: false, // optional
+    providerOptions // required
+  });
 
 	// Functions
 	const connect = async () => {
 			try{
-					const tx = await ethereum.request({ method: 'eth_requestAccounts' })
-			 		props.setUser([true, tx[0]]);
-          ethereum.on('accountsChanged', function (accounts) {
+          const web3ModalProvider = await web3Modal.connect();
+          const provider = new ethers.providers.Web3Provider(web3ModalProvider);
+          const signer = await provider.getSigner();
+          const address = await signer.getAddress();
+          props.setProvider(web3ModalProvider);
+			 		props.setUser([true, address]);
+          provider.on('accountsChanged', function (accounts) {
+             console.log(accounts);
              props.setUser([true,accounts[0]]);
           });
 			} catch (e) {

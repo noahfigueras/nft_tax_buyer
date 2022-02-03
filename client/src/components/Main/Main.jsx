@@ -9,14 +9,16 @@ import Modal from 'react-bootstrap/Modal';
 import './Main.css';
 import { ethers } from 'ethers';
 
-const Main = () => {
+const Main = ({Provider}) => {
   // Ethers 
   let provider;
   let signer;
-  if(window.ethereum) {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
+
+  if(Provider !== null) {
+    provider = new ethers.providers.Web3Provider(Provider);
     signer = provider.getSigner();
   }
+
 	// Contract
   const recieverContract = "0x41aaA0cbD93996bcF86141173E738079414f7AeD";
 	const ABI = [
