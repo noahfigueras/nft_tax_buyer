@@ -17,6 +17,7 @@ const Main = ({Provider}) => {
   if(Provider !== null) {
     provider = new ethers.providers.Web3Provider(Provider);
     signer = provider.getSigner();
+	
   }
 
 	// Contract
@@ -161,7 +162,7 @@ const Main = ({Provider}) => {
         </Modal.Header>
         <Modal.Body>You got {smShow[1]} eth back.</Modal.Body>
       </Modal>
-      { window.ethereum ? (
+      { Provider ? (
 			<InputGroup style={{padding: "20px", maxWidth: "1000px"}} className="mb-3">
 					<FormControl
 						placeholder={inputPlaceHolder}
