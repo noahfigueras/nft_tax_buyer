@@ -20,7 +20,7 @@ const Navbar = (props) => {
     walletconnect: {
       package: WalletConnectProvider,
       options: {
-        infuraId: "27e484dcd9e3efcfd25a83a78777cdf1", 
+        infuraId: "a7ce48e475b94eb49390e0fb9ffb1547", 
       }
     }
   };
