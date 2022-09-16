@@ -2,23 +2,18 @@ pragma solidity >=0.8.0 <0.9.0;
 
 //SPDX-License-Identifier: MIT
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
-contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Receiver {
+contract SmartContractV2 is ReentrancyGuard, Ownable, Pausable {
 
+	bytes4 constant _ERC721 = 0x80ac58cd;
+	bytes4 constant _ERC1155 = 0xd9b67a26;
+    uint256 constant gasFee721 = 130000;
+    uint256 constant gasFee1155S = 85000;
+    uint256 constant gasFee1155B = 130000;
     uint256 public perc_gasFee = 5;
-    uint256 public gasFee721 = 130000;
-    uint256 public gasFee1155S = 85000;
-    uint256 public gasFee1155B = 130000;
     address public vault = address(0);
-
-    function supportsInterface(bytes4 interfaceID) public virtual override view returns (bool) {
-      return  interfaceID == 0x4e2312e0;
-    }
 
     function setVault(address newVault) onlyOwner public {
         vault = newVault;
@@ -31,6 +26,14 @@ contract SmartContract is ReentrancyGuard, Ownable, IERC721Receiver, IERC1155Rec
     function _gasReturn(uint256 gasFee, uint256 perc, uint256 gasPrice) internal pure returns (uint256) {
         uint256 amount = (((gasFee * perc) / 100) * gasPrice);  
         return amount;
+    }
+
+	function pause() onlyOwner public {
+        _pause();
+    }
+
+    function unpause() onlyOwner public {
+        _unpause();
     }
 
     function onERC721Received(
