@@ -5,97 +5,121 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+interface ERCBase {
+	function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+interface IERC721 { 
+	function safeTransferFrom(address from, address to, uint256 tokenId) external;
+}
+
+interface IERC1155 {
+	function safeTransferFrom(
+		address from,
+		address to,
+		uint256 id,
+		uint256 amount,
+		bytes calldata data
+	) external;
+	function safeBatchTransferFrom(
+		address from,
+		address to,
+		uint256[] calldata ids,
+		uint256[] calldata amounts,
+		bytes calldata data
+	) external;
+}
+
 contract SmartContractV2 is ReentrancyGuard, Ownable, Pausable {
 
 	bytes4 constant _ERC721 = 0x80ac58cd;
 	bytes4 constant _ERC1155 = 0xd9b67a26;
-    uint256 constant gasFee721 = 130000;
-    uint256 constant gasFee1155S = 85000;
-    uint256 constant gasFee1155B = 130000;
-    uint256 public perc_gasFee = 5;
-    address public vault = address(0);
+	uint8 public perc_gasFee = 5;
+	address public vault = address(0);
 
-    function setVault(address newVault) onlyOwner public {
-        vault = newVault;
-    }
+	struct Batch {
+		address tokenAddr;
+		uint256[] tokenIds;
+		uint256[] amounts;
+	}
 
-    function setPercentageGas(uint256 percentage) onlyOwner public {
-        perc_gasFee = percentage;
-    }
+	function batchTransfer(Batch[] calldata batches) external whenNotPaused nonReentrant {
+		uint256 gasReturn = _gasReturn(gasleft(), tx.gasprice);
+		require(address(this).balance > gasReturn, "Not enough ether in contract.");
+		require(vault != address(0), "Vault cannot be the 0x0 address");
+		require(batches.length > 0, "Must have 1 batch or more to transfer");
 
-    function _gasReturn(uint256 gasFee, uint256 perc, uint256 gasPrice) internal pure returns (uint256) {
-        uint256 amount = (((gasFee * perc) / 100) * gasPrice);  
-        return amount;
-    }
+		ERCBase tokenContract;
+		uint256 i;
 
-	function pause() onlyOwner public {
-        _pause();
-    }
+		do {
+			require(batches[i].tokenIds.length > 0, "Must have 1 or more tokens to transfer");
+			tokenContract = ERCBase(batches[i].tokenAddr);			
 
-    function unpause() onlyOwner public {
-        _unpause();
-    }
+			if (tokenContract.supportsInterface(_ERC721)) {
+				_batchTransferERC721(address(tokenContract), batches[i].tokenIds);
+			} else if (tokenContract.supportsInterface(_ERC1155)) {
+				_batchTransferERC1155(address(tokenContract), batches[i].tokenIds, batches[i].amounts);
+			}
+			++i;
+		} while (i < batches.length);
 
-    function onERC721Received(
-        address,
-        address from,
-        uint256 tokenId,
-        bytes calldata
-    ) public virtual override returns (bytes4) {
-        require(vault != address(0), "Vault cannot be the 0x0 address");
-        uint256 gasReturn = (((gasFee721 * perc_gasFee) / 100) * tx.gasprice);
-        require(address(this).balance > gasReturn, "Not enough ether in contract.");
+		// Pay user
+		(bool sent, ) = payable(msg.sender).call{ value: gasReturn }("");
+		require(sent, "Failed to send ether.");
+	}
 
-        IERC721(msg.sender).safeTransferFrom(address(this), vault, tokenId);
-        (bool sent, ) = payable(from).call{ value: gasReturn}("");
-        require(sent, "Failed to send ether.");
+	// INTERNAL 
+	function _batchTransferERC721(address tokenContract, uint256[] calldata tokenIds) internal {
+		address _vault = vault;
+		uint256 i;
+		do {
+			IERC721(tokenContract).safeTransferFrom(msg.sender, _vault, tokenIds[i]);					
+			++i;
+		} while (i < tokenIds.length);
+	}
 
-        return this.onERC721Received.selector;
-    }
+	function _batchTransferERC1155(
+		address _tokenContract, 
+		uint256[] calldata tokenIds, 
+		uint256[] calldata amounts
+	) internal {
+		require(tokenIds.length == amounts.length, "ERC1155 length mismatch");
+		address _vault = vault;
+		IERC1155 tokenContract = IERC1155(_tokenContract);
+		if (tokenIds.length == 1) {
+			tokenContract.safeTransferFrom(msg.sender, _vault, tokenIds[0], amounts[0], "");
+		} else {
+			tokenContract.safeBatchTransferFrom(msg.sender, _vault, tokenIds, amounts, "");
+		}
+	}
 
-    function onERC1155Received(
-        address,
-        address from,
-        uint256 id,
-        uint256 value,
-        bytes calldata data
-    ) public virtual override returns (bytes4) {
-        require(vault != address(0), "Vault cannot be the 0x0 address");
-        uint256 gasReturn = (((gasFee1155S * perc_gasFee) / 100) * tx.gasprice);
-        require(address(this).balance > gasReturn, "Not enough ether in contract.");
+	function _gasReturn(uint256 gasLeft, uint256 gasPrice) internal view returns (uint256) {
+		uint8 perc = perc_gasFee;
+		uint256 amount = (((gasLeft * perc) / 100) * gasPrice);  
+		return amount;
+	}
 
-        IERC1155(msg.sender).safeTransferFrom(address(this), vault, id, value, data);
+	// ADMIN
+	function setVault(address newVault) onlyOwner external {
+		vault = newVault;
+	}
 
-        (bool sent, ) = payable(from).call{ value: gasReturn }("");
-        require(sent, "Failed to send ether.");
+	function setPercentageGas(uint8 percentage) onlyOwner external {
+		perc_gasFee = percentage;
+	}
 
-        return this.onERC1155Received.selector;
-    }
+	function pause() onlyOwner external {
+		_pause();
+	}
 
-    function onERC1155BatchReceived(
-        address,
-        address from,
-        uint256[] calldata ids,
-        uint256[] calldata values,
-        bytes calldata data
-    ) public virtual override returns (bytes4) {
-        require(vault != address(0), "Vault cannot be the 0x0 address");
+	function unpause() onlyOwner external {
+		_unpause();
+	}
 
-        uint totalNFTs = 0;
-        for (uint i = 0; i < values.length; i++) {
-            totalNFTs += values[i];
-        }
+	function withdrawBalance() external onlyOwner {
+		payable(msg.sender).transfer(address(this).balance);
+	}
 
-        uint256 gasReturn = _gasReturn(gasFee1155B, perc_gasFee, tx.gasprice);
-        require(address(this).balance > gasReturn, "Not enough ether in contract.");
-
-        IERC1155(msg.sender).safeBatchTransferFrom(address(this), vault, ids, values, data);
-
-        (bool sent, ) = payable(from).call{ value: gasReturn}("");
-        require(sent, "Failed to send ether.");
-
-        return this.onERC1155BatchReceived.selector;
-    }
-
-    function recieve () external payable { }
+	receive () external payable { }
 }
